@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var searchTextSKU: String = ""
+    
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 16) {
@@ -23,7 +25,8 @@ struct ContentView: View {
                         .fontWeight(.bold)
                 }
                 HStack {
-                    Text("Search By SKU")
+                    TextField("Search By SKU...", text: $searchTextSKU)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
                     Spacer()
                     Text("Add Product")
                         .font(.title2)
