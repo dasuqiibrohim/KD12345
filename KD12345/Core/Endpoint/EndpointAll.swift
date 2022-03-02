@@ -10,9 +10,9 @@ import Foundation
 enum EndpointAll: EndpointType {
     case Register(email: String, password: String)
     case Login(email: String, password: String)
-    case AddProducts(prod: ItemProductResponse)
-    case UpdateProducts(prod: ItemProductResponse)
-    case DeleteProducts(sku: String)
+    case AddProducts(token: String, prod: ItemProductResponse)
+    case UpdateProducts(token: String, prod: ItemProductResponse)
+    case DeleteProducts(token: String, sku: String)
     case ListProducts
 }
 
@@ -39,19 +39,12 @@ extension EndpointAll {
     var parameter: [String : Any] {
         return [:]
     }
-    var header: [String : String] {
+    var header: String {
         switch self {
-        case .Register, .Login, .ListProducts:
-            return [
-                "Accept": "application/json",
-                "Content-Type": "application/from-data"
-            ]
+        case .AddProducts(let token, _), .UpdateProducts(let token, _), .DeleteProducts(let token, _):
+            return "Bearer \(token)"
         default:
-            return [
-                "Accept": "application/json",
-                "Content-Type": "application/from-data",
-                "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiZWFyZXIiLCJzdWIiOjEyOSwiaWF0IjoxNjQ2MTcyMDQ3LCJleHAiOjE2NDYxNzU2NDd9.iW8Dey59l0JhR6TOqNLOyT1of0MeYHdhKPHl969MXDQ"
-            ]
+            return ""
         }
     }
     var method: enMethod {
@@ -69,7 +62,7 @@ extension EndpointAll {
                 "email": email,
                 "password": password
             ]
-        case .AddProducts(let prod), .UpdateProducts(let prod):
+        case .AddProducts(_, let prod), .UpdateProducts(_, let prod):
             return [
                 "sku": prod.sku,
                 "product_name": prod.productName,
@@ -78,7 +71,7 @@ extension EndpointAll {
                 "unit": prod.unit,
                 "status": prod.status.endcodeStr()
             ]
-        case .DeleteProducts(let sku):
+        case .DeleteProducts(_, let sku):
             return [
                 "sku": sku
             ]

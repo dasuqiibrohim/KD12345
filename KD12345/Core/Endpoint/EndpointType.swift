@@ -11,7 +11,7 @@ protocol EndpointType {
     var baseUrl: String { get }
     var path: String { get }
     var parameter: [String: Any] { get }
-    var header: [String: String] { get }
+    var header: String { get }
     var method: enMethod { get }
     var body: [String: Any] { get }
 }
