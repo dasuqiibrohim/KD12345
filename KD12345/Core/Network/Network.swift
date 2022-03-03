@@ -11,7 +11,6 @@ final class Network<T: Decodable> {
     func fetch(_ endPoint: EndpointType, completionHandler: @escaping (Result<T, Error>) -> Void) {
         let completeUrl = endPoint.baseUrl + endPoint.path
         var urlRequest = URLRequest(url: URL(string: completeUrl)!, timeoutInterval: 15)
-        //urlRequest.allHTTPHeaderFields = endPoint.header
         urlRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Accept")
         urlRequest.addValue(endPoint.header, forHTTPHeaderField: "Authorization")
@@ -20,11 +19,9 @@ final class Network<T: Decodable> {
             do {
                 urlRequest.httpBody = try JSONSerialization.data(withJSONObject: endPoint.body, options: .prettyPrinted)
             } catch let error {
-                print(error.localizedDescription)
+                completionHandler(.failure(error))
             }
         }
-        dump(completeUrl)
-        dump(endPoint.body)
         URLSession.shared.dataTask(with: urlRequest) {data, _, error in
             DispatchQueue.main.async {
                 if let error = error {

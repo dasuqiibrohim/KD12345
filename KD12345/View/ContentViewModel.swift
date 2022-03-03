@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 class ContentViewModel: ObservableObject {
     @Published var isLoading: Bool = false
@@ -14,6 +15,7 @@ class ContentViewModel: ObservableObject {
     
     @Published var token: String = ""
     @Published var searchTextSKU: String = ""
+    @Published var searchProducts: [ItemProductResponse]? = nil
     
     @Published var authRegister: Bool = true
     @Published var emailText: String = ""
@@ -21,12 +23,35 @@ class ContentViewModel: ObservableObject {
     @Published var showAuth: Bool = false
     
     @Published var listProduct: [ItemProductResponse] = []
+    @Published var addProd: Bool = true
     @Published var showProd: Bool = false
+    @Published var skuText: String = ""
+    @Published var nameText: String = ""
+    @Published var qtyText: String = ""
+    @Published var priceText: String = ""
+    @Published var unitText: String = ""
+    @Published var statusProduct: Bool = false
     
     private let networkRegister: Network<RegisterResponse> = Network<RegisterResponse>()
     private let networkLogin: Network<LoginResponse> = Network<LoginResponse>()
     private let networkListProduct: Network<ListProductsResponse> = Network<ListProductsResponse>()
     private let networkItemProduct: Network<ItemProductResponse> = Network<ItemProductResponse>()
+    private var searchCancellable: AnyCancellable?
+    
+    init() {
+        searchCancellable = self.$searchTextSKU.removeDuplicates()
+            .debounce(for: 0.5, scheduler: RunLoop.main)
+            .sink(receiveValue: { str in
+                if str != "" {
+                    self.FiturSearchProductsByData()
+                } else {
+                    self.searchProducts = nil
+                }
+            })
+    }
+    deinit {
+        searchCancellable?.cancel()
+    }
     
     func GETListProduct() {
         isLoading = true
@@ -71,12 +96,43 @@ class ContentViewModel: ObservableObject {
             }
         }
     }
-//    func POSTAddProduc() {
-//        showToast = true
-//        errorText = ""
-//        let product = ItemProductResponse(id: 0, sku: <#T##String#>, productName: <#T##String#>, qty: <#T##StrInt#>, price: <#T##StrInt#>, unit: <#T##String#>, image: <#T##String?#>, status: <#T##StrInt#>, createdAt: <#T##String#>, updatedAt: <#T##String#>)
-//        networkItemProduct.fetch(EndpointAll.AddProducts(token: token, prod: <#T##ItemProductResponse#>), completionHandler: <#T##(Result<ItemProductResponse, Error>) -> Void#>)
-//    }
+    func POSTProduct() {
+        showToast = true
+        errorText = ""
+        let product = ItemProductResponse(id: 0, sku: skuText, productName: nameText, qty: .string(qtyText), price: .string(priceText), unit: unitText, image: nil, status: .integer(statusProduct ? 1: 0), createdAt: "", updatedAt: "")
+        if addProd {
+            networkItemProduct.fetch(EndpointAll.AddProducts(token: token, prod: product)) { reponse in
+                switch reponse {
+                case .failure(let error):
+                    self.errorText = error.localizedDescription
+                    self.showToast = true
+                    self.showProd = false
+                case .success(let obj):
+                    self.listProduct.append(obj)
+                    self.errorText = "Add Product Succsess"
+                    self.showToast = true
+                    self.showProd = false
+                }
+            }
+        } else {
+            networkItemProduct.fetch(EndpointAll.UpdateProducts(token: token, prod: product)) { reponse in
+                switch reponse {
+                case .failure(let error):
+                    self.errorText = error.localizedDescription
+                    self.showToast = true
+                    self.showProd = false
+                case .success(let obj):
+                    if let ind = self.listProduct.firstIndex(where: { $0.id == obj.id }) {
+                        self.listProduct[ind] = obj
+                    }
+                    self.errorText = "Update Product Succsess"
+                    self.showToast = true
+                    self.showProd = false
+                    
+                }
+            }
+        }
+    }
     func POSTDeleteProduct(sku: String) {
         showToast = true
         errorText = ""
@@ -91,6 +147,21 @@ class ContentViewModel: ObservableObject {
                 }
                 self.errorText = "Delete Product Succsess"
                 self.showToast = true
+            }
+        }
+    }
+    func FiturSearchProductsByData() {
+        DispatchQueue.global(qos: .userInteractive).async {
+            let result = self.listProduct
+                .lazy
+                .filter { prd in
+                    return prd.sku.lowercased().contains(self.searchTextSKU.lowercased())
+                }
+            
+            DispatchQueue.main.async {
+                self.searchProducts = result.compactMap({ gwr in
+                    return gwr
+                })
             }
         }
     }

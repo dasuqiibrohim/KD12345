@@ -55,7 +55,15 @@ struct ContentView: View {
                                     viewModel.errorText = "You must login first."
                                     viewModel.showToast = true
                                 } else {
+                                    viewModel.showProd = true
+                                    viewModel.addProd = true
                                     
+                                    viewModel.skuText = ""
+                                    viewModel.nameText = ""
+                                    viewModel.qtyText = ""
+                                    viewModel.priceText = ""
+                                    viewModel.unitText = ""
+                                    viewModel.statusProduct = true
                                 }
                             }
                         }
@@ -69,9 +77,27 @@ struct ContentView: View {
                         .background(Color.clear)
 
                 }
-                ForEach(viewModel.listProduct) { itm in
-                    ProductItem(item: itm)
-                        .padding(.top, itm.id == viewModel.listProduct.first?.id ? 8: 0)
+                
+                if viewModel.searchTextSKU != "" {
+                    if let sProduct = viewModel.searchProducts {
+                        if sProduct.isEmpty {
+                            Text("Product With SKU \(viewModel.searchTextSKU), not found.")
+                        } else {
+                            ForEach(sProduct) { itm in
+                                ProductItem(item: itm)
+                                    .padding(.top, itm.id == viewModel.listProduct.first?.id ? 8: 0)
+                            }
+                        }
+                    } else {
+                        ProgressView()
+                            .padding(.top, 30)
+                            .opacity(viewModel.searchTextSKU == "" ? 0: 1)
+                    }
+                } else {
+                    ForEach(viewModel.listProduct) { itm in
+                        ProductItem(item: itm)
+                            .padding(.top, itm.id == viewModel.listProduct.first?.id ? 8: 0)
+                    }
                 }
             }
         }
@@ -82,6 +108,9 @@ struct ContentView: View {
             ZStack {
                 if viewModel.showAuth {
                     AuthView()
+                }
+                if viewModel.showProd {
+                    ProductView()
                 }
             }
             .contentShape(Rectangle())
@@ -124,7 +153,15 @@ struct ContentView: View {
                             viewModel.errorText = "You must login first."
                             viewModel.showToast = true
                         } else {
+                            viewModel.showProd = true
+                            viewModel.addProd = false
                             
+                            viewModel.skuText = item.sku
+                            viewModel.nameText = item.productName
+                            viewModel.qtyText = item.qty.endcodeStr()
+                            viewModel.priceText = item.price.endcodeStr()
+                            viewModel.unitText = item.unit
+                            viewModel.statusProduct = item.status.endcodeInt() == 0 ? false: true
                         }
                     }
                 }
@@ -213,30 +250,49 @@ struct ContentView: View {
     }
     func ProductView() -> some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text("Product")
                     .font(.title)
                     .fontWeight(.bold)
-                TextField("Input your email...", text: $viewModel.emailText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Input your email...", text: $viewModel.emailText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Input your email...", text: $viewModel.emailText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Input your email...", text: $viewModel.emailText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Input your email...", text: $viewModel.emailText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                TextField("Input your email...", text: $viewModel.emailText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("SKU")
+                    TextField("Input sku...", text: $viewModel.skuText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Product Name")
+                    TextField("Input product name...", text: $viewModel.nameText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Quantity")
+                    TextField("Input Quantity product...", text: $viewModel.qtyText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Price")
+                    TextField("Input Price product...", text: $viewModel.priceText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Unit")
+                    TextField("Input Unit product...", text: $viewModel.unitText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                Toggle("Status product", isOn: $viewModel.statusProduct)
                 HStack {
                     Spacer()
-                    Text("Register")
+                    Text(viewModel.addProd ? "Add": "Update")
                         .foregroundColor(.white)
                         .padding(8)
                         .background(Color.blue)
                         .cornerRadius(8)
+                        .onTapGesture {
+                            withAnimation {
+                                UIApplication.shared.endEditing()
+                                viewModel.POSTProduct()
+                            }
+                        }
                     
                 }
             }
@@ -253,7 +309,7 @@ struct ContentView: View {
                 .shadow(radius: 1)
                 .onTapGesture {
                     withAnimation {
-                        viewModel.showAuth = false
+                        viewModel.showProd = false
                     }
                 }
         }
